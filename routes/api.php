@@ -13,6 +13,12 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
+
+//Route::middleware('auth:api')->get('/user', function (Request $request) {
+//    return $request->user();
+//});
+
+Route::prefix('V1')->middleware(['incoming.validate'])->group(function(){
+    Route::post('/user/register', ['uses' => 'V1\UserController@postRegister'])->middleware('public.token');
+    Route::post('/user/signin', ['uses' => 'V1\UserController@postSignIn'])->middleware('public.token');
 });
