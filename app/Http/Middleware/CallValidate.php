@@ -38,7 +38,7 @@ class CallValidate
 
         $headers = $request->headers->all();
         if(!empty($headers['x-request-client'][0])) {
-            if ( in_array($headers['x-request-client'][0], ['Mentorif','Mentorif Admin']) ) {
+            if ( in_array($headers['x-request-client'][0], ['Mentorif','Mentorif Admin','Mentorif Magic Backend']) ) {
                 return true;
             }
         }

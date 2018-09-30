@@ -49,4 +49,38 @@ class Utility {
         }
         return false;
     }
+
+
+    static function setRedisKey($key, $data, $force = false) {
+        if (!empty($data) || $force === true) {
+            $redis = \Redis::connection();
+            $redis->set($key, base64_encode(serialize($data)));
+        }
+
+    }
+
+    static function getRedisKey($key) {
+        $redis = \Redis::connection();
+        $data = $redis->get($key);
+        if (!empty($data)) {
+            return unserialize(base64_decode($data));
+        }
+    }
+
+    static function getStatusConversion($status) {
+
+        switch($status) {
+            case 'act':
+                return 'active';
+                break;
+            case 'dis':
+                return 'disabled';
+                break;
+            case 'ina':
+                return 'inactive';
+                break;
+            default:
+                return $status;
+        }
+    }
 }

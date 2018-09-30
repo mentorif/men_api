@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Lib\Common\Utility;
+use App\Model\User;
 use Closure;
 
 class PrivateCall
@@ -18,19 +20,19 @@ class PrivateCall
         // check private auth token
         if(false === $this->validateToken($request)) {
 
-            return Utility::sendFailed(\Config::get('constants_en.unauthorized_request'), \Config::get('constants_en.unauthorized_request_code'));
+            return Utility::sendFailed(\Config::get('constants_en.txt.txt_unauthorized_request'), \Config::get('constants_en.code.code_unauthorized_request'));
         }
         return $next($request);
     }
 
     protected function validateToken($request) {
 
-        return true;
         $hash = $request->input('mf_token', '');
-        if (in_array($hash, [
-            '345B6E57D8A612A85ABE973CF20EBFE69ACE3FA2B6A851ECB944839427B506D9', // Mentorif frontend token
-        ])) {
-            return true;
+        if (!empty($hash)) {
+            $count = User::where('persist_code', $hash)->count();
+            if ($count > 0) {
+                return true;
+            }
         }
         return false;
     }
