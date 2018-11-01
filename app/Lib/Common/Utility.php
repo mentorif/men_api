@@ -25,13 +25,13 @@ class Utility {
     /*
      * Send the failed message
      */
-    static function sendFailed($errors,  $code = null, $type= 'json') {
+    static function sendFailed($errors, $code = null,$type= 'json') {
 
         if ($type == 'json') {
             return \Response::json([
                 \Config::get('constants_en.txt.txt_status') => \Config::get('constants_en.txt.txt_failed'),
                 \Config::get('constants_en.txt.txt_code') => !is_null($code) ? $code : \Config::get('constants_en.code.code_failed'),
-                \Config::get('constants_en.txt.txt_errors') => is_array($errors) ? $errors : [$errors]
+                \Config::get('constants_en.txt.txt_errors') => (is_array($errors) || is_object($errors)) ? $errors : [$errors]
             ]);
         }
     }
@@ -82,5 +82,19 @@ class Utility {
             default:
                 return $status;
         }
+    }
+
+    static function escapeInput($d) {
+
+        return htmlentities($d, ENT_QUOTES, env('ENCODING', 'UTF-8'));
+    }
+
+    static function unescapeInput($d) {
+
+        return html_entity_decode($d, ENT_QUOTES, env('ENCODING', 'UTF-8'));
+    }
+
+    static function encodeurl($url) {
+        return urlencode($url);
     }
 }

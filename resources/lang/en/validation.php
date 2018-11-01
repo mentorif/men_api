@@ -100,8 +100,28 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'business_website.*.url' => [
+            'required_with' => 'URL is missing.',
+            'url' => 'Not the correct format of url.'
+        ],
+        'business_website.*.type' => [
+            'required_with' => 'Type is missing.',
+            'in' => 'Not a valid value.',
+        ],
+        'business_pincode' => [
+            'regex' => 'Only number are allowed, max. 10 digits',
+        ],
+        'business_launch_month' => [
+            'required_unless' => 'Month is required',
+        ],
+        'business_launch_year' => [
+            'required_unless' => 'Year is required',
+        ],
+        'birth_country_id' => [
+            'required' => 'Country you born in is required'
+        ],
+        'm_dial_code' => [
+            'required' => 'Dial code is required'
         ],
     ],
 

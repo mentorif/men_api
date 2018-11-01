@@ -46,7 +46,7 @@ class Country extends Model
         $key = \Config::get('rediskeys.red_country_master');
         $data = Utility::getRedisKey($key);
         if (empty($data) || $reset_cache === true) {
-            $data = self::whereNull('deleted_at')->whereIn('status',$status)->orderBy('shown_order','ASC')->orderBy('name','ASC')->get();
+            $data = self::whereNull('deleted_at')->whereIn('status',$status)->orderBy('shown_order','ASC')->orderBy('name','ASC')->get()->toArray();
             Utility::setRedisKey($key, $data);
         }
         return $data;
@@ -59,9 +59,18 @@ class Country extends Model
         $key = str_ireplace('CCODE',$country_code, \Config::get('rediskeys.red_country_state'));
         $data = Utility::getRedisKey($key);
         if (empty($data) || $reset_cache === true) {
-            $data = self::with('states')->withCountryCode($country_code)->whereNull('deleted_at')->where('status','act')->get();
+            $data = self::with('states')->withCountryCode($country_code)->whereNull('deleted_at')->where('status','act')->get()->toArray();
             Utility::setRedisKey($key, $data);
         }
         return $data;
+    }
+
+    public static function isValidCountry($id) {
+
+        $count = self::where('id', $id)->whereNull('deleted_at')->where('status','act')->count();
+        if ($count > 0) {
+            return true;
+        }
+        return false;
     }
 }

@@ -20,9 +20,13 @@ class AlterUserAddSourcePersistCode extends Migration
                 }
                 if(!Schema::hasColumn('users', 'persist_code')){
                     $table->string('persist_code','255')->nullable(true);
+                    $table->unique('persist_code');
                 }
                 if(!Schema::hasColumn('users', 'status')){
                     $table->enum('status',['act','dis','ina'])->default('act');
+                }
+                if(!Schema::hasColumn('users', 'remember_token')){
+                    $table->string('remember_token','255')->nullable(true);
                 }
             });
         }

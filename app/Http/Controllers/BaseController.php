@@ -16,4 +16,9 @@ class BaseController extends ParentController
         }
         return false;
     }
+
+    public function getCheckMe(\Request $request) {
+
+        return $request->get('tz');
+    }
 }
