@@ -102,8 +102,10 @@ class BusinessDetail extends Model
         $businessDetailObj->description = Utility::escapeInput(array_get($data,'business_description'));
         $businessDetailObj->request = Utility::escapeInput(array_get($data,'business_offer'));
 
-        $businessDetailObj->save();
-        return $businessDetailObj;
+        if ($businessDetailObj->save()) {
+            return $businessDetailObj;
+        }
+        return false;
     }
 
     public static function getUserBusinessDetails($userObj) {

@@ -26,8 +26,8 @@ class CreateUserTable extends Migration
 //                $table->integer('city_id')->nullable(true);
 //                $table->string('address1', 255)->nullable(true);
 //                $table->string('address2', 255)->nullable(true);
-                $table->string('lat', 20)->nullable(true);
-                $table->string('long', 20)->nullable(true);
+//                $table->string('lat', 20)->nullable(true);
+//                $table->string('long', 20)->nullable(true);
                 $table->boolean('is_mentor')->default('0');
                 $table->boolean('is_privacy_confirmed')->default('0');
                 $table->boolean('is_term_condition_confirmed')->default('0');

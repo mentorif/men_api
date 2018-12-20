@@ -11,8 +11,9 @@ class BaseController extends ParentController
     public function getUser($token) {
 
         if (!empty($token)) {
-            $userObj = User::where('persist_code', $token)->first();
-            return $userObj;
+            if (User::where('persist_code', $token)->exists()) {
+                return User::where('persist_code', $token)->first();
+            }
         }
         return false;
     }

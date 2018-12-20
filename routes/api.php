@@ -39,7 +39,11 @@ Route::prefix('V1')->middleware(['incoming.validate'])->group(function(){
     Route::get('/account/info',['uses' => 'V1\AccountController@getAccountInfo'])->middleware('private.token');
 
     Route::get('/country-region',['uses' => 'V1\CommonController@getCountryRegion']);
+    Route::get('/state-city',['uses' => 'V1\CommonController@getStateCity']);
     Route::get('/list-country',['uses' => 'V1\CommonController@getCountries']);
 
     Route::post('/account/ready_to_go',['uses' => 'V1\AccountController@postPrepareAccountToPublish'])->middleware('private.token');
+
+    Route::get('/account/mentor-data',['uses' => 'V1\AccountController@getMentorFormData'])->middleware('private.token');
+    Route::post('/account/mentor-data',['uses' => 'V1\AccountController@postMentorFormData'])->middleware('private.token');
 });

@@ -6,8 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class User extends Model
 {
-    protected $hidden = ['pivot','updated_at','deleted_at','created_at','email','pass', 'persist_code','remember_token'];
+    // @todo: persist_code should be hidden to return in response, unless specifically mentioned in api call
+    protected $hidden = ['pivot','updated_at','deleted_at','created_at','email','pass','remember_token'];
+
     protected $softDelete = true;
+
+    protected $exclude_fields = ['persist_code'];
 
     public function personalinfo() {
         return $this->hasOne('App\Model\UserPersonalInfo','uid')
@@ -20,11 +24,20 @@ class User extends Model
 
     public function businessinfo() {
         return $this->hasOne('App\Model\BusinessDetail','uid')
-            ->whereNull('deleted_at');
+            ->whereNull('business_detail.deleted_at');
     }
 
     public function scopeWithBusinessInfo($query) {
         return $query->with('businessinfo');
+    }
+
+    public function expertinfo() {
+        return $this->hasOne('App\Model\ExpertDetail','uid')
+            ->whereNull('expert_detail.deleted_at');
+    }
+
+    public function scopeWithExpertInfo($query) {
+        return $query->with('expertinfo');
     }
 
     public static function addUser($data, $source = '') {
@@ -36,6 +49,9 @@ class User extends Model
         $userObj->pass = self::generatePasswordHash(array_get($data,'pass'));
         $userObj->is_mentor = array_get($data,'is_mentor',0);
         $userObj->is_privacy_confirmed = array_get($data,'is_privacy_confirmed',1);
+        if (1 === array_get($data,'is_mentor',0)) {
+            $userObj->is_term_condition_confirmed = 1;
+        }
         switch ($source) {
             case 'fb':
                 $userObj->acc_creation_method = 'fb';
@@ -106,7 +122,7 @@ class User extends Model
                     return \Lang::get('message.pa_break');
                 }
             }
-            $this->is_acc_setup_done = 1;;
+            $this->is_acc_setup_done = 1;
             $this->save();
             return true;
         }
@@ -122,18 +138,26 @@ class User extends Model
 
     }
 
-    public function addMenteePersonalInfo($data) {
+    public function addPersonalInfo($data) {
 
         $userPersonalInfoObj = $this->personalinfo()->first();
         if (empty($userPersonalInfoObj)) {
             $userPersonalInfoObj = new UserPersonalInfo();
             $userPersonalInfoObj->uid = $this->id;
         }
-        $saved = $userPersonalInfoObj->addMenteePersonalInfoData($data);
-        if ($saved) {
-            $this->intent_to_connect = array_get($data,'intent_to_connect','Y');
-            $this->save();
-            return true;
+        if ($this->is_mentor === 0) {
+            $saved = $userPersonalInfoObj->addMenteePersonalInfoData($data);
+            if ($saved) {
+                $this->intent_to_connect = array_get($data,'intent_to_connect','Y');
+                $this->save();
+                return true;
+            }
+
+        } else {
+            $saved = $userPersonalInfoObj->addMentorPersonalInfoData($data);
+            if ($saved) {
+                return true;
+            }
         }
         return false;
 
@@ -151,7 +175,7 @@ class User extends Model
         return false;
     }
 
-    public function getInfo($params) {
+    public function getBusinessInfo(array $params = []) {
 
         $with = [];
         if(1 == array_get($params,'business_info', 0)) {
@@ -162,28 +186,22 @@ class User extends Model
         if(1 == array_get($params,'personal_info', 0)) {
             array_push($with,'personalinfo');
         }
-
-        return $this->with($with)->first()->toArray();
+        return self::with($with)->where('id', $this->id)->first()->toArray();
     }
 
     public function publishAccount() {
 
-        if ($this->mentor == 1) {
-            // user is mentor
-        } else {
-            // user is mentee
-
-            if (true === $return = $this->isMenteeValidToPublish()) {
-                $this->visibility = 'pub';
-                $this->last_publish_date = date('Y-m-d H:i:s');
-                $this->save();
-                return true;
-            }
-            return $return;
+        if (true === $return = $this->isUserValidToPublish()) {
+            $this->visibility = 'pub';
+            $this->last_publish_date = date('Y-m-d H:i:s');
+            $this->save();
+            return true;
         }
+        return $return;
+
     }
 
-    public function isMenteeValidToPublish()
+    public function isUserValidToPublish()
     {
         if ($this->is_privacy_confirmed == 1 && $this->is_term_condition_confirmed == 1 &&
             $this->is_code_conduct_confirmed == 1 && $this->is_profile_image_done == 1 &&
@@ -201,4 +219,35 @@ class User extends Model
         return \Lang::get('message.settings_incomplete');
     }
 
+    public function addExpertData($inputs) {
+
+        $expertObj = ExpertDetail::addExpertDetail($this, $inputs);
+        if (!empty($expertObj->id)) {
+            $expertCountryExperience = ExpertCountryExperience::addCountryToExpert($expertObj,array_get($inputs,'mentor_country_expertise_id'));
+            $expertFunctionalExperience = ExpertFunctionalArea::addFunctionalAreaToExpert($expertObj,array_get($inputs, 'mentor_selected_expertises'));
+            $personalInfo = $this->addPersonalInfo($inputs);
+            if (false !== $expertCountryExperience && false !== $expertFunctionalExperience && false !== $personalInfo) {
+                if (!empty(array_get($inputs,'mentor_photo_upload',''))) {
+                    $this->addProfilePic(array_get($inputs,'mentor_photo_upload'));
+                }
+                $this->is_acc_setup_done = 1;
+                $this->save();
+                return true;
+            }
+        }
+        return \Lang::get('message.expert_data_save_issue');
+    }
+
+    public function getExpertInfo(array $params = []) {
+
+        $with = [];
+        if(1 == array_get($params,'expert_info', 0)) {
+            array_push($with,'expertinfo','expertinfo.industry_detail','expertinfo.function_area','expertinfo.function_area.functional_area',
+                'expertinfo.function_area.functional_area.functionalareagroup','expertinfo.country_experience','expertinfo.country_experience.country_detail');
+        }
+        if(1 == array_get($params,'personal_info', 0)) {
+            array_push($with,'expertinfo.personalinfo','expertinfo.personalinfo.country_detail','expertinfo.personalinfo.state_detail','expertinfo.personalinfo.city_detail');
+        }
+        return self::with($with)->where('id', $this->id)->first()->toArray();
+    }
 }

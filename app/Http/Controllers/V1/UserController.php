@@ -83,7 +83,7 @@ class UserController extends BaseController
             } else {
                 return Utility::sendFailed(Lang::get('message.invalid_inputs'));
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             //@todo: Log exception
             return Utility::sendFailed(Lang::get('auth.register_failed'));
 
@@ -111,7 +111,7 @@ class UserController extends BaseController
             } else {
                 return Utility::sendFailed(Lang::get('message.invalid_inputs'));
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             //@todo: Log exception
             return Utility::sendFailed($e->getMessage());
         }

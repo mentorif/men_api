@@ -24,4 +24,6 @@ return [
     'already_published' => 'Your account is already published in past. Check your account visibility status or contact support for assistance',
     'success_publish' => 'Congratulations! your account is published successfully',
 
+    'unauthorized_profile' => "Unauthorzied user profile",
+    'expert_data_save_issue' => 'Could not save expert data',
 ];

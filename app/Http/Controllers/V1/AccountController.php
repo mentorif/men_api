@@ -4,6 +4,9 @@ namespace App\Http\Controllers\V1;
 use App\Lib\Common\Utility;
 use App\Model\BusinessDetail;
 use App\Model\Country;
+use App\Model\ExpertCountryExperience;
+use App\Model\ExpertDetail;
+use App\Model\ExpertFunctionalArea;
 use App\Model\FunctionalArea;
 use App\Model\FunctionalAreaGroup;
 use App\Model\Industrial;
@@ -11,6 +14,7 @@ use App\Model\State;
 use App\Model\UserPersonalInfo;
 use Flow\Exception;
 use App\Http\Controllers\BaseController as BaseController;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use App\Model\User;
 use Illuminate\Validation\Rule;
@@ -38,7 +42,7 @@ class AccountController extends BaseController
                 return Utility::sendSuccess('', Lang::get('message.success_save_data'));
             }
             return Utility::sendFailed(Lang::get('message.invalid_inputs'), \Config::get('constants_en.code.code_failed'));
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             //@todo: Log exception
             return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
 
@@ -63,7 +67,7 @@ class AccountController extends BaseController
                 return Utility::sendSuccess('', Lang::get('message.success_save_data'));
             }
             return Utility::sendFailed(Lang::get('message.invalid_inputs'), \Config::get('constants_en.code.code_failed'));
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             //@todo: Log exception
             return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
 
@@ -85,7 +89,7 @@ class AccountController extends BaseController
             $functional_areas = FunctionalAreaGroup::getFunctionalArea();
             $countries = Country::getCountry();
             return Utility::sendSuccess(['business_details' => $business_details, 'industries' => $industries, 'functional_areas' => $functional_areas, 'countries' => $countries]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 
             //@todo: Log exception
             return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
@@ -157,7 +161,7 @@ class AccountController extends BaseController
                 }
             }
             return Utility::sendFailed($validator->errors(), \Config::get('constants_en.code.code_failed'));
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 
             //@todo: Log exception
             return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
@@ -180,7 +184,7 @@ class AccountController extends BaseController
             }
             unset($inputs, $userObj);
             return Utility::sendSuccess('', Lang::get('message.success_save_data'));
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 
             //@todo: Log exception
             return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
@@ -199,7 +203,7 @@ class AccountController extends BaseController
             }
             $data = $userObj->getPersonalInfo();
             return Utility::sendSuccess($data);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 
             //@todo: Log exception
             return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
@@ -229,12 +233,12 @@ class AccountController extends BaseController
                 'intent_to_connect' => ['nullable', Rule::in(['Y','N','NS'])],
             ]);
             if ($validator->passes()) {
-                $userObj->addMenteePersonalInfo($inputs);
+                $userObj->addPersonalInfo($inputs);
                 unset($inputs, $userObj, $validator);
                 return Utility::sendSuccess('', Lang::get('message.success_save_data'));
             }
             return Utility::sendFailed($validator->errors(), \Config::get('constants_en.code.code_failed'));
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 
             //@todo: Log exception
             return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
@@ -251,11 +255,17 @@ class AccountController extends BaseController
                     return Utility::sendFailed(\Config::get('constants_en.txt.txt_unauthorized_request'), \Config::get('constants_en.code.code_unauthorized_request'));
                 }
             }
-            $data = $userObj->getInfo($inputs);
+            $data = [];
+            if ($userObj->is_mentor === 1) {
+                $data = $userObj->getExpertInfo($inputs);
+            } else {
+                $data = $userObj->getBusinessInfo($inputs);
+            }
             return Utility::sendSuccess($data);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 
             //@todo: Log exception
+            return Utility::sendFailed($e->getMessage());
             return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
         }
     }
@@ -276,10 +286,89 @@ class AccountController extends BaseController
                 return Utility::sendSuccess('', Lang::get('message.success_publish'));
             }
             return Utility::sendFailed($response, \Config::get('constants_en.code.code_failed'));
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 
             //@todo: Log exception
             return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
+        }
+    }
+
+    public function getMentorFormData(Request $request) {
+        try {
+            $inputs = $request->all();
+            $userObj = null;
+            if (!empty(array_get($inputs,'mf_token', ''))) {
+                $userObj = $this->getUser(array_get($inputs,'mf_token', ''));
+                if (false === $userObj) {
+                    return Utility::sendFailed(\Config::get('constants_en.txt.txt_unauthorized_request'), \Config::get('constants_en.code.code_unauthorized_request'));
+                }
+            }
+            if ($userObj->is_mentor === 1) {
+                $mentor_details = ExpertDetail::getExpertInfo($userObj, $inputs);
+                $industries = Industrial::getIndustries();
+                $functional_areas = FunctionalAreaGroup::getFunctionalArea();
+                $countries = Country::getCountry();
+                return Utility::sendSuccess(['mentor_details' => $mentor_details, 'industries' => $industries, 'functional_areas' => $functional_areas, 'countries' => $countries]);
+            }
+            return Utility::sendFailed(Lang::get('message.unauthorized_profile'));
+        } catch (\Exception $e) {
+
+            //@todo: Log exception
+            return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
+            //return Utility::sendFailed($e->getMessage());
+        }
+    }
+
+    public function postMentorFormData(Request $request) {
+        try {
+            $inputs = $request->all();
+            $userObj = null;
+            if (!empty(array_get($inputs,'mf_token', ''))) {
+                $userObj = $this->getUser(array_get($inputs,'mf_token', ''));
+                if (false === $userObj) {
+                    return Utility::sendFailed(\Config::get('constants_en.txt.txt_unauthorized_request'), \Config::get('constants_en.code.code_unauthorized_request'));
+                }
+            }
+            if ($userObj->is_mentor === 1) {
+                $validator = \Validator::make($inputs,[
+                    'mentor_selected_expertises' => 'required|array|min:1|max:7',
+                    'mentor_industry_id' => 'required',
+                    'mentor_professional_bio' => 'required|min:300|max:1000',
+                    'mentor_entrepreneur_pitch' => 'required|min:300|max:1000',
+                    'mentor_mentoring_stages' => ['required', 'array', Rule::in(UserPersonalInfo::ENTRE_HELPING)],
+                    'mentor_years_management' => ['required','regex:/^\d+$/'],
+                    'mentor_years_ownership' => ['required','regex:/^\d+$/'],
+                    'mentor_country_expertise_id' => 'required|array|min:1',
+                    'mentor_language_id' => ['required','array','min:1'],
+                    'mentor_country_id' => 'required',
+                    'mentor_phone' => ['required','regex:/^\d+$/'],
+
+                    'mentor_website_url' => ['nullable', 'url'],
+                    'mentor_business_name' => ['nullable','string'],
+                    'mentor_title' => ['nullable','string'],
+                    'mentor_city' => ['nullable','regex:/^\d+$/'],
+                    'mentor_state' => ['nullable','regex:/^\d+$/'],
+                    'mentor_postal_code' => ['nullable','regex:/^\d+$/'],
+                    'mentor_ethnicity' => ['required',Rule::in(UserPersonalInfo::ETHNICITY)],
+                    'mentor_gender' => ['required', Rule::in(['M','F','O','X'])],
+                    'mentor_birth_year' => ['nullable','regex:/^\d+$/'],
+                    'mentor_photo_upload' => array_get($inputs, 'data.User.photo_upload','')
+                ]);
+                if ($validator->passes()) {
+
+                    if (true === $output = $userObj->addExpertData($inputs)) {
+                        return Utility::sendSuccess('', Lang::get('message.success_save_data'));
+                    }
+                    throw new \Exception($output);
+                }
+                return Utility::sendFailed($validator->errors(), \Config::get('constants_en.code.code_failed'));
+            }
+            return Utility::sendFailed(Lang::get('message.unauthorized_profile'));
+        } catch (\Exception $e) {
+
+            //@todo: Log exception
+            return Utility::sendFailed($e->getMessage());
+            //return Utility::sendFailed(Lang::get('message.exception_default_error_message'));
         }
     }
 }

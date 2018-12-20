@@ -123,6 +123,39 @@ return [
         'm_dial_code' => [
             'required' => 'Dial code is required'
         ],
+        'mentor_selected_expertises' => [
+            'required' => 'Area of expertise is required'
+        ],
+        'mentor_industry_id' => [
+            'required' => 'Primary industry is required'
+        ],
+        'mentor_professional_bio' => [
+            'required' => 'Professional background is required'
+        ],
+        'mentor_entrepreneur_pitch' => [
+            'required' => 'Above field is required'
+        ],
+        'mentor_mentoring_stages' => [
+            'required' => 'Atleast one option is required'
+        ],
+        'mentor_years_management' => [
+            'required' => 'Business management experience years is required'
+        ],
+        'mentor_years_ownership' => [
+            'required' => 'Ownership experience is required'
+        ],
+        'mentor_country_expertise_id' => [
+            'required' => 'Atleast one option required'
+        ],
+        'mentor_language_id' => [
+            'required' => 'Atleast one option is required'
+        ],
+        'mentor_country_id' => [
+            'required' => 'Country is required'
+        ],
+        'mentor_phone' => [
+            'required' => 'Phone number is required'
+        ],
     ],
 
     /*
